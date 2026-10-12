@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,45 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model Resource {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(120)
+  type        String   @db.VarChar(60)
+  description String?  @db.VarChar(1000)
+  location    String?  @db.VarChar(120)
+  capacity    Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  reservations Reservation[]
+
+  @@index([type, isActive])
+  @@index([name])
+}
+
+model Reservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  resourceId      String            @db.Uuid
+  reservedByName  String            @db.VarChar(120)
+  reservedByEmail String            @db.VarChar(254)
+  purpose         String            @db.VarChar(500)
+  startAt         DateTime          @db.Timestamptz(3)
+  endAt           DateTime          @db.Timestamptz(3)
+  status          ReservationStatus @default(CONFIRMED)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@index([resourceId, startAt, endAt])
+  @@index([status])
+  @@index([startAt])
 }
