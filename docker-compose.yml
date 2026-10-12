@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: reservex-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reservex
+      POSTGRES_PASSWORD: reservex_dev_password
+      POSTGRES_DB: reservex_dev
+    ports:
+      - "5434:5432"
+    volumes:
+      - reservex_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reservex -d reservex_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  reservex_pgdata:
