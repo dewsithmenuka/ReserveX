@@ -1,22 +1,25 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { requirePageUser } from "@/lib/guards";
 import { getDashboardSummary } from "@/modules/dashboard/service";
 import { formatDateTime } from "@/lib/time";
+import { btnPrimary, btnSecondary, card } from "@/components/ui/styles";
 
 export const metadata = { title: "Dashboard · ReserveX" };
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold">{value}</p>
+      <p className="mt-2 text-3xl font-bold tracking-tight text-indigo-700">{value}</p>
     </div>
   );
 }
 
 async function DashboardContent() {
   await connection();
+  await requirePageUser();
   const s = await getDashboardSummary();
 
   return (
@@ -31,14 +34,14 @@ async function DashboardContent() {
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-semibold">Next reservations</h2>
         {s.nextReservations.length === 0 ? (
-          <p className="rounded-lg border border-dashed bg-white p-6 text-center text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-slate-500">
             No upcoming reservations.{" "}
             <Link href="/reservations/new" className="font-medium text-indigo-700 underline">
               Create one
             </Link>
           </p>
         ) : (
-          <ul className="divide-y rounded-lg border bg-white">
+          <ul className={`${card} divide-y divide-slate-100`}>
             {s.nextReservations.map((r) => (
               <li key={r.id} className="flex flex-col gap-1 p-4 sm:flex-row sm:justify-between">
                 <div>
@@ -63,12 +66,12 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex gap-2">
-          <Link href="/resources/new" className="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100">
+          <Link href="/resources/new" className={btnSecondary}>
             New resource
           </Link>
-          <Link href="/reservations/new" className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+          <Link href="/reservations/new" className={btnPrimary}>
             New reservation
           </Link>
         </div>
