@@ -10,7 +10,7 @@ import type {
 
 type CreateInput = z.infer<typeof createReservationSchema> & { userId?: string };
 type UpdateInput = z.infer<typeof updateReservationSchema>;
-type ListInput = z.infer<typeof listReservationsSchema>;
+type ListInput = z.infer<typeof listReservationsSchema> & { userId?: string };
 
 const PAST_GRACE_MS = 60_000;
 const MAX_TRANSACTION_ATTEMPTS = 3;
@@ -182,6 +182,7 @@ export async function checkAvailability(
 
 export async function listReservations(input: ListInput) {
   const where: Prisma.ReservationWhereInput = {
+    ...(input.userId && { userId: input.userId }),
     ...(input.resourceId && { resourceId: input.resourceId }),
     ...(input.status && { status: input.status }),
     ...(input.from && { endAt: { gt: input.from } }),

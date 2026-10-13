@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-slate-50);
+  color: var(--color-slate-900);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Dark theme: the slate scale is inverted, so text-slate-900 becomes light text,
+   border-slate-200 becomes a dark border, and so on. */
+.dark {
+  color-scheme: dark;
+
+  --color-slate-50: #020617;
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #cbd5e1;
+  --color-slate-700: #e2e8f0;
+  --color-slate-800: #f1f5f9;
+  --color-slate-900: #f8fafc;
+
+  --color-indigo-50: #1e1b4b;
+  --color-indigo-100: #312e81;
+}
+
+/* Things that aren't part of the slate scale */
+.dark .bg-white {
+  background-color: var(--color-slate-100);
+}
+.dark .bg-white\/80 {
+  background-color: color-mix(in oklab, var(--color-slate-100) 80%, transparent);
+}
+.dark .text-indigo-700 {
+  color: var(--color-indigo-300);
+}
+.dark .text-indigo-600 {
+  color: var(--color-indigo-400);
+}
+.dark .bg-emerald-50 {
+  background-color: color-mix(in oklab, var(--color-emerald-500) 18%, transparent);
+}
+.dark .text-emerald-700 {
+  color: var(--color-emerald-300);
+}
+.dark .bg-rose-50 {
+  background-color: color-mix(in oklab, var(--color-rose-500) 18%, transparent);
+}
+.dark .text-rose-700 {
+  color: var(--color-rose-300);
 }
