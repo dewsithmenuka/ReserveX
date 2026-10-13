@@ -8,7 +8,7 @@ import type {
   listReservationsSchema,
 } from "@/lib/validations/reservation";
 
-type CreateInput = z.infer<typeof createReservationSchema>;
+type CreateInput = z.infer<typeof createReservationSchema> & { userId?: string };
 type UpdateInput = z.infer<typeof updateReservationSchema>;
 type ListInput = z.infer<typeof listReservationsSchema>;
 
