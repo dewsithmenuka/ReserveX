@@ -28,3 +28,13 @@ export const listReservationsSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
+export const availabilitySchema = z
+  .object({
+    resourceId: z.string().uuid(),
+    startAt: z.coerce.date(),
+    endAt: z.coerce.date(),
+  })
+  .refine((v) => v.endAt > v.startAt, {
+    message: "endAt must be after startAt",
+    path: ["endAt"],
+});
