@@ -1,112 +1,80 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { requirePageUser } from "@/lib/guards";
+import { requirePageAdmin } from "@/lib/guards";
+import { parseQuery } from "@/lib/search";
+import { formatMoney } from "@/lib/money";
 import { listResourcesSchema } from "@/lib/validations/resource";
 import { listResources } from "@/modules/resources/service";
-import { badgeGray, badgeGreen, btnPrimary, btnSecondary, card, inputCls } from "@/components/ui/styles";
+import { ToggleActiveButton } from "@/components/admin/ToggleActiveButton";
+import { SearchForm } from "@/components/ui/SearchForm";
+import { badgeGray, badgeGreen, btnPrimary, btnSecondary, card } from "@/components/ui/styles";
 
-export const metadata = { title: "Resources · ReserveX" };
+export const metadata = { title: "Admin · Resources · ReserveX" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-async function ResourceList({ searchParams }: Props) {
+async function AdminResources({ searchParams }: Props) {
   await connection();
-  const user = await requirePageUser();
-  const raw = await searchParams;
-  const flat = Object.fromEntries(
-    Object.entries(raw).filter(([, v]) => typeof v === "string" && v !== ""),
+  await requirePageAdmin();
+  const sp = await searchParams;
+  const q = parseQuery(sp.q);
+  const type = typeof sp.type === "string" ? sp.type.slice(0, 60) : "";
+  const { items, total } = await listResources(
+    listResourcesSchema.parse({ pageSize: "100", ...(q && { q }), ...(type && { type }) }),
   );
-  const parsed = listResourcesSchema.safeParse(flat);
-  const q = parsed.success ? parsed.data : listResourcesSchema.parse({});
-  const { items, total } = await listResources(q);
-
-  const pageHref = (p: number) => {
-    const sp = new URLSearchParams(flat as Record<string, string>);
-    sp.set("page", String(p));
-    return `/resources?${sp.toString()}`;
-  };
 
   return (
     <>
-      <form className={`${card} mb-6 grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto_auto]`} role="search">
-        <input name="q" defaultValue={q.q} placeholder="Search name, location, description…" aria-label="Search" className={inputCls} />
-        <select name="type" defaultValue={q.type ?? ""} aria-label="Type" className={inputCls}>
-          <option value="">All types</option>
-          <option value="room">Room</option>
-          <option value="equipment">Equipment</option>
-          <option value="vehicle">Vehicle</option>
-        </select>
-        <select name="isActive" defaultValue={q.isActive ?? ""} aria-label="Status" className={inputCls}>
-          <option value="">Any status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
-        <button className={btnSecondary}>Filter</button>
-      </form>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-slate-600">{total} resource{total === 1 ? "" : "s"}</p>
+        <Link href="/resources/new" className={btnPrimary}>New resource</Link>
+      </div>
+
+      <SearchForm
+        action="/admin/resources"
+        q={q}
+        type={type}
+        showType
+        placeholder="Search by name, location or description…"
+      />
 
       {items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          No resources match your search.
+          {q || type ? "No resources match your search." : "No resources yet."}
         </p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className={`${card} divide-y divide-slate-100`}>
           {items.map((r) => (
-            <li key={r.id} className={`${card} flex flex-col p-5`}>
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="font-semibold">{r.name}</h2>
-                <span className={r.isActive ? badgeGreen : badgeGray}>{r.isActive ? "Active" : "Inactive"}</span>
+            <li key={r.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{r.name}</p>
+                  <span className={r.isActive ? badgeGreen : badgeGray}>{r.isActive ? "Active" : "Inactive"}</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  {r.type}
+                  {r.location ? ` · ${r.location}` : ""}
+                  {r.capacity ? ` · Capacity ${r.capacity}` : ""}
+                  {` · ${r.pricePerHourCents > 0 ? `${formatMoney(r.pricePerHourCents)}/hour` : "Free"}`}
+                </p>
               </div>
-              <p className="mt-1 text-xs uppercase tracking-wide text-indigo-600">{r.type}</p>
-              <p className="mt-2 flex-1 text-sm text-slate-600">{r.description ?? "No description."}</p>
-              <p className="mt-3 text-xs text-slate-500">
-                {r.location ?? "No location"}
-                {r.capacity ? ` · Capacity ${r.capacity}` : ""}
-              </p>
-              <div className="mt-4 flex gap-2">
-                {r.isActive ? (
-                  <Link href={`/reservations/new?resourceId=${r.id}`} className={btnPrimary}>Reserve</Link>
-                ) : (
-                  <span className={`${btnSecondary} cursor-not-allowed opacity-60`} aria-disabled>Unavailable</span>
-                )}
-                {user.role === "ADMIN" && (
-                  <Link href={`/resources/${r.id}/edit`} className={btnSecondary}>Edit</Link>
-                )}
+              <div className="flex items-start gap-2">
+                <Link href={`/resources/${r.id}/edit`} className={`${btnSecondary} !px-3 !py-1.5`}>Edit</Link>
+                <ToggleActiveButton id={r.id} isActive={r.isActive} />
               </div>
             </li>
           ))}
         </ul>
       )}
-
-      <div className="mt-6 flex items-center justify-between text-sm text-slate-600">
-        <span>{total} resource{total === 1 ? "" : "s"}</span>
-        <div className="flex gap-2">
-          {q.page > 1 && <Link href={pageHref(q.page - 1)} className={btnSecondary}>Previous</Link>}
-          {total > q.page * q.pageSize && <Link href={pageHref(q.page + 1)} className={btnSecondary}>Next</Link>}
-        </div>
-      </div>
     </>
   );
 }
 
-async function NewButton() {
-  await connection();
-  const user = await requirePageUser();
-  return user.role === "ADMIN" ? (
-    <Link href="/resources/new" className={btnPrimary}>New resource</Link>
-  ) : null;
-}
-
-export default function ResourcesPage({ searchParams }: Props) {
+export default function AdminResourcesPage({ searchParams }: Props) {
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Resources</h1>
-        <Suspense><NewButton /></Suspense>
-      </div>
-      <Suspense fallback={<p className="text-slate-500">Loading resources…</p>}>
-        <ResourceList searchParams={searchParams} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+      <AdminResources searchParams={searchParams} />
+    </Suspense>
   );
 }

@@ -55,3 +55,9 @@ body {
 .dark .text-rose-700 {
   color: var(--color-rose-300);
 }
+.dark .bg-amber-50 {
+  background-color: color-mix(in oklab, var(--color-amber-500) 18%, transparent);
+}
+.dark .text-amber-700 {
+  color: var(--color-amber-300);
+}

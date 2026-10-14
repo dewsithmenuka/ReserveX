@@ -32,8 +32,11 @@ export async function changePassword(userId: string, current: string, next: stri
   if (!(await bcrypt.compare(current, user.passwordHash))) {
     throw new AppError(400, "INVALID_PASSWORD", "Current password is incorrect");
   }
+  if (current === next) {
+    throw new AppError(400, "SAME_PASSWORD", "The new password must be different from the current one");
+  }
   await db.user.update({
     where: { id: userId },
-    data: { passwordHash: await bcrypt.hash(next, 12) },
+    data: { passwordHash: await bcrypt.hash(next, 12), tokenVersion: { increment: 1 } },
   });
 }

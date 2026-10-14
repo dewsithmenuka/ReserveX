@@ -1,4 +1,5 @@
 import "dotenv/config";
+
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -17,6 +18,7 @@ const resources = [
     location: "Floor 2",
     capacity: 12,
     description: "Large room with projector and whiteboard.",
+    pricePerHourCents: 150000,
   },
   {
     id: "10000000-0000-4000-8000-000000000002",
@@ -25,6 +27,7 @@ const resources = [
     location: "Floor 2",
     capacity: 6,
     description: "Small meeting room.",
+    pricePerHourCents: 80000,
   },
   {
     id: "10000000-0000-4000-8000-000000000003",
@@ -33,6 +36,7 @@ const resources = [
     location: "IT Store",
     capacity: null,
     description: "Portable projector with HDMI cable.",
+    pricePerHourCents: 0,
   },
   {
     id: "10000000-0000-4000-8000-000000000004",
@@ -41,15 +45,18 @@ const resources = [
     location: "Parking Bay 3",
     capacity: 8,
     description: "8-seat van for team trips.",
+    pricePerHourCents: 500000,
   },
 ];
 
 async function main() {
-  // Seed resources.
+  // Seed resources and update prices for existing resources.
   for (const r of resources) {
     await db.resource.upsert({
       where: { id: r.id },
-      update: {},
+      update: {
+        pricePerHourCents: r.pricePerHourCents,
+      },
       create: r,
     });
   }

@@ -22,9 +22,15 @@ const book = (startH: number, endH: number, day = 1) =>
 const conflict = { status: 409, code: "RESERVATION_CONFLICT" };
 
 beforeEach(async () => {
+  await db.payment.deleteMany();
   await db.reservation.deleteMany();
   await db.resource.deleteMany();
-  resourceId = (await db.resource.create({ data: { name: "Room", type: "room" } })).id;
+
+  resourceId = (
+    await db.resource.create({
+      data: { name: "Room", type: "room" },
+    })
+  ).id;
 });
 
 afterAll(() => db.$disconnect());

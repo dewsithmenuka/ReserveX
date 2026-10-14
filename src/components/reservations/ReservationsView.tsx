@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { requirePageUser } from "@/lib/guards";
+import { buildHref, parsePage, parseQuery } from "@/lib/search";
 import { formatDateTime } from "@/lib/time";
 import { listReservations } from "@/modules/reservations/service";
 import { CancelButton } from "@/components/reservations/CancelButton";
+import { PaymentInfo } from "@/components/payments/PaymentInfo";
+import { SearchForm } from "@/components/ui/SearchForm";
 import { badgeGray, badgeGreen, card } from "@/components/ui/styles";
 
 export type ReservationTab = "upcoming" | "cancelled" | "all";
@@ -21,6 +24,8 @@ const EMPTY_TEXT: Record<ReservationTab, string> = {
   all: "No reservations yet.",
 };
 
+const TYPES = ["room", "equipment", "vehicle"];
+
 export async function ReservationsView({
   tab,
   searchParams,
@@ -32,26 +37,36 @@ export async function ReservationsView({
   const user = await requirePageUser();
   const sp = await searchParams;
 
-  const rawPage = typeof sp.page === "string" ? Number(sp.page) : 1;
-  const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const q = parseQuery(sp.q);
+  const type = typeof sp.type === "string" && TYPES.includes(sp.type) ? sp.type : "";
+  const page = parsePage(sp.page);
   const isAdmin = user.role === "ADMIN";
   const now = new Date();
+  const base = BASE_PATH[tab];
 
   const { items, total, pageSize } = await listReservations({
     page,
     pageSize: 10,
+    q: q || undefined,
+    resourceType: type || undefined,
     ...(!isAdmin && { userId: user.id }),
     ...(tab === "upcoming" && { status: "CONFIRMED" as const, from: now }),
     ...(tab === "cancelled" && { status: "CANCELLED" as const }),
   });
 
-  const base = BASE_PATH[tab];
-
   return (
     <>
+      <SearchForm
+        action={base}
+        q={q}
+        type={type}
+        showType
+        placeholder="Search by resource, purpose, name or email…"
+      />
+
       {items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          {EMPTY_TEXT[tab]}{" "}
+          {q || type ? "No reservations match your search." : EMPTY_TEXT[tab]}{" "}
           <Link href="/reservations/new" className="font-medium text-indigo-700 underline">
             Make a reservation
           </Link>
@@ -74,8 +89,11 @@ export async function ReservationsView({
                 <p className="mt-1 text-sm text-slate-700">
                   {formatDateTime(r.startAt)} → {formatDateTime(r.endAt)}
                 </p>
+                <PaymentInfo r={r} canPay={r.userId === user.id} />
               </div>
-              {r.status === "CONFIRMED" && r.endAt > now && <CancelButton id={r.id} />}
+              {r.status === "CONFIRMED" && r.endAt > now && (
+                <CancelButton id={r.id} paid={r.paymentStatus === "PAID"} />
+              )}
             </li>
           ))}
         </ul>
@@ -87,12 +105,12 @@ export async function ReservationsView({
         </span>
         <div className="flex gap-4">
           {page > 1 && (
-            <Link href={`${base}?page=${page - 1}`} className="font-medium text-indigo-700 hover:underline">
+            <Link href={buildHref(base, { q, type, page: page - 1 })} className="font-medium text-indigo-700 hover:underline">
               ← Previous
             </Link>
           )}
           {total > page * pageSize && (
-            <Link href={`${base}?page=${page + 1}`} className="font-medium text-indigo-700 hover:underline">
+            <Link href={buildHref(base, { q, type, page: page + 1 })} className="font-medium text-indigo-700 hover:underline">
               Next →
             </Link>
           )}

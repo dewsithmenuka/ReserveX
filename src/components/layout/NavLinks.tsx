@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Dashboard" },
   { href: "/resources", label: "Resources" },
   { href: "/reservations", label: "Reservations" },
+    { href: "/payments", label: "Payments" },
 ];
 
 export function NavLinks() {

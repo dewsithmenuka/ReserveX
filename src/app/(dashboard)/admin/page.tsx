@@ -2,10 +2,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { requirePageAdmin } from "@/lib/guards";
+import { buildHref, parsePage, parseQuery } from "@/lib/search";
 import { formatDateTime } from "@/lib/time";
 import { getAdminStats } from "@/modules/admin/service";
 import { listReservations } from "@/modules/reservations/service";
 import { CancelButton } from "@/components/reservations/CancelButton";
+import { PaymentInfo } from "@/components/payments/PaymentInfo";
+import { SearchForm } from "@/components/ui/SearchForm";
 import { badgeGray, badgeGreen, card } from "@/components/ui/styles";
 
 export const metadata = { title: "Admin · Reservations · ReserveX" };
@@ -17,6 +20,8 @@ const FILTERS = [
   { key: "CONFIRMED", label: "Confirmed", href: "/admin?status=CONFIRMED" },
   { key: "CANCELLED", label: "Cancelled", href: "/admin?status=CANCELLED" },
 ] as const;
+
+const TYPES = ["room", "equipment", "vehicle"];
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
@@ -33,17 +38,23 @@ async function AdminReservations({ searchParams }: Props) {
   const sp = await searchParams;
 
   const status = sp.status === "CONFIRMED" || sp.status === "CANCELLED" ? sp.status : undefined;
-  const rawPage = typeof sp.page === "string" ? Number(sp.page) : 1;
-  const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const q = parseQuery(sp.q);
+  const type = typeof sp.type === "string" && TYPES.includes(sp.type) ? sp.type : "";
+  const page = parsePage(sp.page);
   const now = new Date();
 
   const [stats, { items, total, pageSize }] = await Promise.all([
     getAdminStats(),
-    listReservations({ page, pageSize: 15, ...(status && { status }) }),
+    listReservations({
+      page,
+      pageSize: 15,
+      q: q || undefined,
+      resourceType: type || undefined,
+      ...(status && { status }),
+    }),
   ]);
 
   const activeKey = status ?? "all";
-  const pageHref = (p: number) => `/admin?${status ? `status=${status}&` : ""}page=${p}`;
 
   return (
     <>
@@ -69,9 +80,18 @@ async function AdminReservations({ searchParams }: Props) {
         ))}
       </div>
 
+      <SearchForm
+        action="/admin"
+        q={q}
+        type={type}
+        showType
+        hidden={status ? { status } : {}}
+        placeholder="Search by resource, purpose, name or email…"
+      />
+
       {items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          No reservations found.
+          {q || type ? "No reservations match your search." : "No reservations found."}
         </p>
       ) : (
         <ul className={`${card} divide-y divide-slate-100`}>
@@ -90,8 +110,11 @@ async function AdminReservations({ searchParams }: Props) {
                 <p className="mt-1 text-sm text-slate-700">
                   {formatDateTime(r.startAt)} → {formatDateTime(r.endAt)}
                 </p>
+                <PaymentInfo r={r} canPay={false} />
               </div>
-              {r.status === "CONFIRMED" && r.endAt > now && <CancelButton id={r.id} />}
+              {r.status === "CONFIRMED" && r.endAt > now && (
+                <CancelButton id={r.id} paid={r.paymentStatus === "PAID"} />
+              )}
             </li>
           ))}
         </ul>
@@ -100,8 +123,16 @@ async function AdminReservations({ searchParams }: Props) {
       <div className="mt-6 flex items-center justify-between text-sm text-slate-600">
         <span>{total} reservation{total === 1 ? "" : "s"}</span>
         <div className="flex gap-4">
-          {page > 1 && <Link href={pageHref(page - 1)} className="font-medium text-indigo-700 hover:underline">← Previous</Link>}
-          {total > page * pageSize && <Link href={pageHref(page + 1)} className="font-medium text-indigo-700 hover:underline">Next →</Link>}
+          {page > 1 && (
+            <Link href={buildHref("/admin", { status, q, type, page: page - 1 })} className="font-medium text-indigo-700 hover:underline">
+              ← Previous
+            </Link>
+          )}
+          {total > page * pageSize && (
+            <Link href={buildHref("/admin", { status, q, type, page: page + 1 })} className="font-medium text-indigo-700 hover:underline">
+              Next →
+            </Link>
+          )}
         </div>
       </div>
     </>

@@ -6,6 +6,7 @@ export const createResourceSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   location: z.string().trim().max(120).optional(),
   capacity: z.number().int().positive().max(100000).optional(),
+  pricePerHourCents: z.number().int().min(0).max(100_000_000).optional(),
 });
 
 export const updateResourceSchema = createResourceSchema

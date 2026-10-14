@@ -1,8 +1,5 @@
-const url =
-  process.env.TEST_DATABASE_URL ??
-  "postgresql://reservex:reservex_dev_password@localhost:5434/reservex_test";
+import { TEST_DATABASE_URL, assertTestDatabaseUrl } from "./test-db";
 
-if (!url.includes("_test")) {
-  throw new Error("Refusing to run tests against a non-test database");
-}
-process.env.DATABASE_URL = url;
+assertTestDatabaseUrl(TEST_DATABASE_URL);
+process.env.DATABASE_URL = TEST_DATABASE_URL;
+process.env.SESSION_SECRET = "test-only-session-secret-that-is-at-least-32-chars";

@@ -24,6 +24,7 @@ model Resource {
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   reservations Reservation[]
+  pricePerHourCents Int @default(0)
 
   @@index([type, isActive])
   @@index([name])
@@ -49,6 +50,9 @@ model Reservation {
   @@index([resourceId, startAt, endAt])
   @@index([status])
   @@index([startAt])
+  amountCents   Int           @default(0)
+  paymentStatus PaymentStatus @default(NOT_REQUIRED)
+  payments      Payment[]
 }
 enum Role {
   USER
@@ -63,6 +67,53 @@ model User {
   role         Role     @default(USER)
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @db.Timestamptz(3)
-
+  tokenVersion Int       @default(0)
+  
   reservations Reservation[]
+  payments Payment[]
+
+}
+enum PaymentStatus {
+  NOT_REQUIRED
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+enum PaymentKind {
+  CHARGE
+  REFUND
+}
+
+enum PaymentResult {
+  SUCCEEDED
+  FAILED
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  reservationId String        @db.Uuid
+  userId        String?       @db.Uuid
+  kind          PaymentKind
+  result        PaymentResult
+  amountCents   Int
+  currency      String        @default("LKR") @db.VarChar(3)
+  cardBrand     String?       @db.VarChar(30)
+  cardLast4     String?       @db.VarChar(4)
+  failureReason String?       @db.VarChar(200)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([reservationId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+model RateLimit {
+  key       String   @id @db.VarChar(200)
+  count     Int
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
 }
