@@ -4,8 +4,6 @@ A full-stack web application for booking shared resources (rooms, equipment, and
 
 **Stack:** Next.js (App Router) · TypeScript · PostgreSQL · Prisma · Tailwind CSS · Zod · Vitest
 
-- ER diagram: [docs/er-diagram.md](docs/er-diagram.md)
-- Demo video: [ADD_LINK_HERE](ADD_LINK_HERE)
 
 ## Features
 
